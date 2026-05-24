@@ -28,7 +28,7 @@ async fn main() -> Result<(), rust_eloquent::sqlx::Error> {
     
     let users = User::query()
         .where_like("email", "%@example.com")
-        .order_by_desc("id")
+        .order_by_name_desc()
         .limit(1)
         .get()
         .await?;
@@ -38,9 +38,9 @@ async fn main() -> Result<(), rust_eloquent::sqlx::Error> {
     let count = User::query().count().await?;
     println!("=> Total de usuários na tabela: {}", count);
 
-    // Filter using dynamic generic inputs (i32)
-    let filtered_user = User::query().where_eq("id", 1).first().await?;
-    println!("=> User via builder onde id=1: {:?}", filtered_user);
+    // Filter using dynamic generic inputs (i32) and magic methods
+    let filtered_user = User::query().where_id(1).first().await?;
+    println!("=> User via builder mágico onde id=1: {:?}", filtered_user);
 
     // Limpeza
     let _ = std::fs::remove_file("test.db");

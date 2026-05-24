@@ -30,6 +30,36 @@ pub fn eloquent_macro(input: TokenStream) -> TokenStream {
     let bind_inserts: Vec<_> = field_names.iter().filter(|&&ident| ident != "id").map(|ident| quote! { .bind(self.#ident.clone()) }).collect();
     let bind_updates: Vec<_> = field_names.iter().filter(|&&ident| ident != "id").map(|ident| quote! { .bind(self.#ident.clone()) }).collect();
 
+    // ==========================================
+    // MAGIC METHODS GENERATION
+    // ==========================================
+    let magic_methods: Vec<_> = field_names.iter().map(|ident| {
+        let field_name_str = ident.to_string();
+        let where_method = quote::format_ident!("where_{}", ident);
+        let where_not_method = quote::format_ident!("where_not_{}", ident);
+        let or_where_method = quote::format_ident!("or_where_{}", ident);
+        let order_by_method = quote::format_ident!("order_by_{}", ident);
+        let order_by_desc_method = quote::format_ident!("order_by_{}_desc", ident);
+
+        quote! {
+            pub fn #where_method<T: Into<rust_eloquent::EloquentValue>>(self, value: T) -> Self {
+                self.where_eq(#field_name_str, value)
+            }
+            pub fn #where_not_method<T: Into<rust_eloquent::EloquentValue>>(self, value: T) -> Self {
+                self.where_not_eq(#field_name_str, value)
+            }
+            pub fn #or_where_method<T: Into<rust_eloquent::EloquentValue>>(self, value: T) -> Self {
+                self.or_where(#field_name_str, value)
+            }
+            pub fn #order_by_method(self) -> Self {
+                self.order_by(#field_name_str)
+            }
+            pub fn #order_by_desc_method(self) -> Self {
+                self.order_by_desc(#field_name_str)
+            }
+        }
+    }).collect();
+
     let expanded = quote! {
         #[rust_eloquent::async_trait]
         impl rust_eloquent::EloquentModel for #name {
@@ -454,6 +484,37 @@ pub fn eloquent_macro(input: TokenStream) -> TokenStream {
                 let row: (i64,) = rust_eloquent::sqlx::query_as_with(&query_str, args).fetch_one(pool).await?;
                 Ok(row.0)
             }
+
+            pub async fn delete_all(&self) -> Result<u64, rust_eloquent::sqlx::Error> {
+                let pool = rust_eloquent::Eloquent::pool();
+                let mut query_str = format!("DELETE FROM {}", #table_name);
+                
+                if !self.wheres.is_empty() {
+                    query_str.push_str(" WHERE ");
+                    for (i, (operator, condition)) in self.wheres.iter().enumerate() {
+                        if i > 0 {
+                            query_str.push_str(&format!(" {} ", operator));
+                        }
+                        query_str.push_str(condition);
+                    }
+                }
+
+                let mut args = rust_eloquent::sqlx::any::AnyArguments::default();
+                for binding in &self.bindings {
+                    match binding {
+                        rust_eloquent::EloquentValue::String(s) => rust_eloquent::sqlx::Arguments::add(&mut args, s.clone()).unwrap(),
+                        rust_eloquent::EloquentValue::Int(i) => rust_eloquent::sqlx::Arguments::add(&mut args, *i).unwrap(),
+                        rust_eloquent::EloquentValue::Float(f) => rust_eloquent::sqlx::Arguments::add(&mut args, *f).unwrap(),
+                        rust_eloquent::EloquentValue::Bool(b) => rust_eloquent::sqlx::Arguments::add(&mut args, *b).unwrap(),
+                    }
+                }
+
+                let result = rust_eloquent::sqlx::query_with(&query_str, args).execute(pool).await?;
+                Ok(result.rows_affected())
+            }
+
+            // --- Magic Dynamic Methods ---
+            #(#magic_methods)*
         }
 
         // ==========================================

@@ -123,4 +123,16 @@ End your Query Builder chain with one of these to execute the SQL query asynchro
 - `.get().await?` -> Returns a `Vec<Model>` matching your filters.
 - `.first().await?` -> Returns a single `Model` (automatically applies `LIMIT 1`). Throws `RowNotFound` if empty.
 - `.count().await?` -> Returns an `i64` representing the number of rows matching your filters.
+- `.delete_all().await?` -> Deletes all rows matching your filters and returns the number of rows affected.
 - `.to_sql()` -> Returns a `String` containing the raw SQL query generated so far (useful for debugging).
+
+### ✨ Dynamic Magic Methods
+The macro intelligently inspects your struct fields at compile time and generates 5 exclusive methods for **each field**. 
+If your struct has `email` and `name` fields, you automatically unlock:
+- `.where_email(value)`
+- `.or_where_email(value)`
+- `.where_not_email(value)`
+- `.order_by_email()`
+- `.order_by_email_desc()`
+- `.where_name(value)`
+...and so on! This provides an incredible developer experience identical to Laravel.
