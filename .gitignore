@@ -3,3 +3,7 @@
 Cargo.lock
 test.db
 .env
+*.db
+*.recovered*
+expanded.rs
+*.txt
