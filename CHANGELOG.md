@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-05-25
+
+### Added
+- **Database-Agnostic Migration Engine:** The Artisan CLI migration runner is now entirely driver-agnostic, capable of dynamically generating standard schemas for PostgreSQL, MySQL, and SQLite identically based on the `Blueprint` builder.
+- **Improved Type Safety:** Improved `.save()` internal query generation for nested fields handling generic string lengths and driver-specific Boolean types automatically.
+
 ## [1.0.0] - 2026-05-24
 
 ### Added (The Phase 3 & 4 Enterprise Expansion)

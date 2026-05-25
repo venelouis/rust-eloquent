@@ -1,6 +1,6 @@
 [package]
 name = "rust-eloquent"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 description = "An Active Record ORM for Rust, inspired by Laravel's Eloquent."
 license = "MIT"
@@ -10,7 +10,7 @@ categories = ["database"]
 readme = "../README.md"
 
 [dependencies]
-rust-eloquent-macros = { path = "../rust-eloquent-macros", version = "1.0.0" }
+rust-eloquent-macros = { path = "../rust-eloquent-macros", version = "1.1.0" }
 sqlx = { version = "0.8", features = ["sqlite", "postgres", "mysql", "any", "runtime-tokio", "macros"] }
 tokio = { version = "1.43", features = ["full"] }
 async-trait = "0.1.86"

@@ -159,17 +159,18 @@ pub trait Migration: Send + Sync {
     async fn down(&self) -> Result<(), Error>;
 }
 
-pub async fn run_artisan(
+pub async fn run_artisan_with_args(
+    args: &[String],
     migrations: Vec<Box<dyn Migration>>,
     seeders: Vec<Box<dyn crate::Seeder>>
 ) -> Result<(), Error> {
-    let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
         println!("Rust Eloquent Artisan CLI");
         println!("Usage:");
         println!("  make:migration <name>   Generate a new migration");
         println!("  migrate                  Run all pending migrations");
         println!("  migrate:rollback         Rollback the last batch of migrations");
+        println!("  status                   Show migrations status");
         println!("  db:seed                  Populate the database with seeders");
         return Ok(());
     }
@@ -184,11 +185,14 @@ pub async fn run_artisan(
             let name = &args[2];
             create_migration_files(name)?;
         }
-        "migrate" => {
+        "migrate" | "db:migrate" => {
             run_migrations(migrations).await?;
         }
-        "migrate:rollback" => {
+        "migrate:rollback" | "db:rollback" => {
             rollback_migrations(migrations).await?;
+        }
+        "status" | "db:status" => {
+            status_migrations(migrations).await?;
         }
         "db:seed" => {
             println!("Seeding database...");
@@ -199,6 +203,55 @@ pub async fn run_artisan(
             println!("Unknown command: {}", command);
         }
     }
+    Ok(())
+}
+
+pub async fn run_artisan(
+    migrations: Vec<Box<dyn Migration>>,
+    seeders: Vec<Box<dyn crate::Seeder>>
+) -> Result<(), Error> {
+    let args: Vec<String> = std::env::args().collect();
+    run_artisan_with_args(&args, migrations, seeders).await
+}
+
+async fn status_migrations(migrations: Vec<Box<dyn Migration>>) -> Result<(), Error> {
+    let pool = crate::Eloquent::pool();
+    let driver = crate::Eloquent::driver();
+
+    let table_exists = match driver {
+        "postgres" | "mysql" => {
+            let query_str = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'migrations'";
+            let row: (i64,) = sqlx::query_as(query_str).fetch_one(pool).await.unwrap_or((0,));
+            row.0 > 0
+        }
+        _ => {
+            let query_str = "SELECT COUNT(*) FROM sqlite_schema WHERE type='table' AND name='migrations'";
+            let row: (i64,) = sqlx::query_as(query_str).fetch_one(pool).await.unwrap_or((0,));
+            row.0 > 0
+        }
+    };
+
+    let executed_set = if table_exists {
+        let executed: Vec<(String,)> = sqlx::query_as("SELECT migration FROM migrations")
+            .fetch_all(pool)
+            .await?;
+        executed.into_iter().map(|(m,)| m).collect::<std::collections::HashSet<String>>()
+    } else {
+        std::collections::HashSet::new()
+    };
+
+    println!("{:<40} | {}", "Migration Name", "Status");
+    println!("{}", "-".repeat(55));
+    for m in migrations {
+        let name = m.name();
+        let status = if executed_set.contains(name) {
+            "Applied"
+        } else {
+            "Pending"
+        };
+        println!("{:<40} | {}", name, status);
+    }
+
     Ok(())
 }
 
@@ -302,14 +355,33 @@ fn regenerate_migrations_mod() -> Result<(), Error> {
 
 async fn run_migrations(migrations: Vec<Box<dyn Migration>>) -> Result<(), Error> {
     let pool = crate::Eloquent::pool();
+    let driver = crate::Eloquent::driver();
 
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS migrations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            migration TEXT NOT NULL,
-            batch INTEGER NOT NULL
-        )"
-    ).execute(pool).await?;
+    let query_str = match driver {
+        "postgres" => {
+            "CREATE TABLE IF NOT EXISTS migrations (
+                id SERIAL PRIMARY KEY,
+                migration VARCHAR(255) NOT NULL,
+                batch INTEGER NOT NULL
+            )"
+        }
+        "mysql" => {
+            "CREATE TABLE IF NOT EXISTS migrations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                migration VARCHAR(255) NOT NULL,
+                batch INT NOT NULL
+            )"
+        }
+        _ => {
+            "CREATE TABLE IF NOT EXISTS migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration TEXT NOT NULL,
+                batch INTEGER NOT NULL
+            )"
+        }
+    };
+
+    sqlx::query(query_str).execute(pool).await?;
 
     let executed: Vec<(String,)> = sqlx::query_as("SELECT migration FROM migrations")
         .fetch_all(pool)
@@ -346,13 +418,22 @@ async fn run_migrations(migrations: Vec<Box<dyn Migration>>) -> Result<(), Error
 
 async fn rollback_migrations(migrations: Vec<Box<dyn Migration>>) -> Result<(), Error> {
     let pool = crate::Eloquent::pool();
+    let driver = crate::Eloquent::driver();
 
-    // Check if migrations table exists in sqlite_schema
-    let table_exists: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM sqlite_schema WHERE type='table' AND name='migrations'"
-    ).fetch_one(pool).await.unwrap_or((0,));
+    let table_exists = match driver {
+        "postgres" | "mysql" => {
+            let query_str = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'migrations'";
+            let row: (i64,) = sqlx::query_as(query_str).fetch_one(pool).await.unwrap_or((0,));
+            row.0 > 0
+        }
+        _ => {
+            let query_str = "SELECT COUNT(*) FROM sqlite_schema WHERE type='table' AND name='migrations'";
+            let row: (i64,) = sqlx::query_as(query_str).fetch_one(pool).await.unwrap_or((0,));
+            row.0 > 0
+        }
+    };
 
-    if table_exists.0 == 0 {
+    if !table_exists {
         println!("Nothing to rollback.");
         return Ok(());
     }
