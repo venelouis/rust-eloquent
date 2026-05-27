@@ -14,7 +14,7 @@ Built on top of `sqlx` and procedural macros, **rust-eloquent** aims to bring th
 
 In traditional Rust database handling, you have to write raw SQL queries, manage connection pools manually across every function, and bind variables repetitively. Rust Eloquent solves this by abstracting the heavy lifting behind a single `#[derive(Eloquent)]` macro. 
 
-**Rust Eloquent v1.0.0** brings a massive array of enterprise-grade features:
+**Rust Eloquent v1.1.x** brings a massive array of enterprise-grade features:
 - **Read/Write Connection Splitting** for automatic scaling.
 - **Integrated Redis Caching** to speed up repeating queries natively.
 - **Query Chunking** for memory-safe large dataset processing.
@@ -44,7 +44,7 @@ Add the library to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-eloquent = "1.0.0"
+rust-eloquent = "1.1.3"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -196,7 +196,7 @@ User::observe(Arc::new(UserObserverImpl));
 
 ---
 
-## 🏢 Enterprise Scaling (v1.0.0)
+## 🏢 Enterprise Scaling (v1.1.x)
 
 For high-traffic applications, Rust Eloquent provides built-in enterprise features to scale your data layer.
 
