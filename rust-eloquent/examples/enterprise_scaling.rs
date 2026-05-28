@@ -27,8 +27,8 @@ async fn main() -> Result<(), rust_eloquent::sqlx::Error> {
 
     // Create the users table on primary and both replicas (in a real-world scenario, replication is handled by the database engine)
     let primary_pool = Eloquent::pool();
-    let r1_pool = sqlx::AnyPool::connect("sqlite://replica1.db").await?;
-    let r2_pool = sqlx::AnyPool::connect("sqlite://replica2.db").await?;
+    let r1_pool = rust_eloquent::EloquentPool::connect("sqlite://replica1.db").await?;
+    let r2_pool = rust_eloquent::EloquentPool::connect("sqlite://replica2.db").await?;
 
     for pool in &[primary_pool, &r1_pool, &r2_pool] {
         rust_eloquent::sqlx::query(

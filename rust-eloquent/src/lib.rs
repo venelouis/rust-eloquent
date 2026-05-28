@@ -28,9 +28,11 @@ pub use redis;
 pub mod schema;
 pub mod collection;
 pub mod types;
+pub mod database;
 
 pub use types::Json;
 pub use collection::EloquentCollection;
+pub use database::EloquentDatabase;
 
 // Re-export async_trait so the macro can use it implicitly
 pub use async_trait::async_trait;

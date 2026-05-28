@@ -502,12 +502,12 @@ pub fn generate(
                 self.get_with_tx_internal(pool).await
             }
 
-            pub async fn get_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>) -> Result<Vec<#name>, rust_eloquent::sqlx::Error> {
+            pub async fn get_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>) -> Result<Vec<#name>, rust_eloquent::sqlx::Error> {
                 self.get_with_tx_internal(&mut **tx).await
             }
 
             async fn get_with_tx_internal<'e, E>(&self, executor: E) -> Result<Vec<#name>, rust_eloquent::sqlx::Error> 
-            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::sqlx::Any>
+            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::EloquentDatabase>
             {
                 let query_str = self.to_sql();
 
@@ -569,7 +569,7 @@ pub fn generate(
                 Ok(results.into_iter().next())
             }
 
-            pub async fn first_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>) -> Result<Option<#name>, rust_eloquent::sqlx::Error> {
+            pub async fn first_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>) -> Result<Option<#name>, rust_eloquent::sqlx::Error> {
                 let mut builder = self.clone();
                 builder.limit = Some(1);
                 let results = builder.get_with_tx(tx).await?;
@@ -678,7 +678,7 @@ pub fn generate(
                 Ok(())
             }
 
-            pub async fn chunk_with_tx<F, Fut>(&self, size: usize, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>, mut handler: F) -> Result<(), rust_eloquent::sqlx::Error>
+            pub async fn chunk_with_tx<F, Fut>(&self, size: usize, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>, mut handler: F) -> Result<(), rust_eloquent::sqlx::Error>
             where
                 F: FnMut(Vec<#name>) -> Fut + Send,
                 Fut: std::future::Future<Output = ()> + Send,
@@ -703,12 +703,12 @@ pub fn generate(
                 self.delete_all_with_tx_internal(pool).await
             }
 
-            pub async fn delete_all_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>) -> Result<u64, rust_eloquent::sqlx::Error> {
+            pub async fn delete_all_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>) -> Result<u64, rust_eloquent::sqlx::Error> {
                 self.delete_all_with_tx_internal(&mut **tx).await
             }
 
             async fn delete_all_with_tx_internal<'e, E>(&self, executor: E) -> Result<u64, rust_eloquent::sqlx::Error> 
-            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::sqlx::Any>
+            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::EloquentDatabase>
             {
                 #delete_all_logic
                 
