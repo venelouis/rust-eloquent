@@ -254,7 +254,7 @@ pub fn generate(
                         if rust_eloquent::schema::is_query_log_enabled() {
                             println!("[SQL Debug] {}", query);
                         }
-                        let row = rust_eloquent::sqlx::query(&query)
+                        let row = rust_eloquent::sqlx::query(rust_eloquent::sqlx::AssertSqlSafe(query.clone()))
                             #(#bind_inserts)*
                             .fetch_one(executor)
                             .await?;
@@ -264,7 +264,7 @@ pub fn generate(
                         if rust_eloquent::schema::is_query_log_enabled() {
                             println!("[SQL Debug] {}", query);
                         }
-                        let result = rust_eloquent::sqlx::query(&query)
+                        let result = rust_eloquent::sqlx::query(rust_eloquent::sqlx::AssertSqlSafe(query.clone()))
                             #(#bind_inserts)*
                             .execute(executor)
                             .await?;
@@ -293,7 +293,7 @@ pub fn generate(
                     if rust_eloquent::schema::is_query_log_enabled() {
                         println!("[SQL Debug] {} | ID: {}", query, self.id);
                     }
-                    rust_eloquent::sqlx::query(&query)
+                    rust_eloquent::sqlx::query(rust_eloquent::sqlx::AssertSqlSafe(query.clone()))
                         #(#bind_updates)*
                         .bind(self.id)
                         .execute(executor)
@@ -362,7 +362,7 @@ pub fn generate(
                 if rust_eloquent::schema::is_query_log_enabled() {
                     println!("[SQL Debug] {} | ID: {}", query, self.id);
                 }
-                rust_eloquent::sqlx::query(&query).bind(self.id).execute(executor).await?;
+                rust_eloquent::sqlx::query(rust_eloquent::sqlx::AssertSqlSafe(query.clone())).bind(self.id).execute(executor).await?;
                 {
                     let observers = {
                         let list = Self::observers().read().unwrap();
@@ -388,7 +388,7 @@ pub fn generate(
                 if #has_soft_deletes {
                     let pool = rust_eloquent::Eloquent::pool();
                     let query = format!("UPDATE {} SET deleted_at = NULL WHERE id = ?", #table_name);
-                    rust_eloquent::sqlx::query(&query).bind(self.id).execute(pool).await?;
+                    rust_eloquent::sqlx::query(rust_eloquent::sqlx::AssertSqlSafe(query.clone())).bind(self.id).execute(pool).await?;
                 }
                 Ok(())
             }
@@ -396,7 +396,7 @@ pub fn generate(
             pub async fn force_delete(&self) -> Result<(), rust_eloquent::sqlx::Error> {
                 let pool = rust_eloquent::Eloquent::pool();
                 let query = format!("DELETE FROM {} WHERE id = ?", #table_name);
-                rust_eloquent::sqlx::query(&query).bind(self.id).execute(pool).await?;
+                rust_eloquent::sqlx::query(rust_eloquent::sqlx::AssertSqlSafe(query.clone())).bind(self.id).execute(pool).await?;
                 Ok(())
             }
 

@@ -505,7 +505,7 @@ pub fn generate(
                     }
                 }
 
-                let mut results: Vec<#name> = rust_eloquent::sqlx::query_as_with(&query_str, args).fetch_all(executor).await?;
+                let mut results: Vec<#name> = rust_eloquent::sqlx::query_as_with(rust_eloquent::sqlx::AssertSqlSafe(query_str.clone()), args).fetch_all(executor).await?;
                 
                 #[cfg(feature = "redis")]
                 {
@@ -569,7 +569,7 @@ pub fn generate(
                 }
                 
                 let pool = rust_eloquent::Eloquent::read_pool();
-                let total_row: (i64,) = rust_eloquent::sqlx::query_as_with(&query_str, args).fetch_one(pool).await?;
+                let total_row: (i64,) = rust_eloquent::sqlx::query_as_with(rust_eloquent::sqlx::AssertSqlSafe(query_str.clone()), args).fetch_one(pool).await?;
                 let total = total_row.0;
                 let last_page = (total as f64 / per_page as f64).ceil() as usize;
                 
@@ -611,7 +611,7 @@ pub fn generate(
                     }
                 }
 
-                let row: (i64,) = rust_eloquent::sqlx::query_as_with(&query_str, args).fetch_one(pool).await?;
+                let row: (i64,) = rust_eloquent::sqlx::query_as_with(rust_eloquent::sqlx::AssertSqlSafe(query_str.clone()), args).fetch_one(pool).await?;
                 Ok(row.0)
             }
 
@@ -695,7 +695,7 @@ pub fn generate(
                 if rust_eloquent::schema::is_query_log_enabled() {
                     println!("[SQL Debug] {} | Bindings: {:?}", query_str, self.bindings);
                 }
-                let result = rust_eloquent::sqlx::query_with(&query_str, args).execute(executor).await?;
+                let result = rust_eloquent::sqlx::query_with(rust_eloquent::sqlx::AssertSqlSafe(query_str.clone()), args).execute(executor).await?;
                 Ok(result.rows_affected())
             }
 
@@ -713,7 +713,7 @@ pub fn generate(
                         rust_eloquent::EloquentValue::Bool(b) => rust_eloquent::sqlx::Arguments::add(&mut args, *b).unwrap(),
                     }
                 }
-                let rows: Vec<(String,)> = rust_eloquent::sqlx::query_as_with(&query_str, args).fetch_all(pool).await?;
+                let rows: Vec<(String,)> = rust_eloquent::sqlx::query_as_with(rust_eloquent::sqlx::AssertSqlSafe(query_str.clone()), args).fetch_all(pool).await?;
                 Ok(rows.into_iter().map(|(s,)| s).collect())
             }
 
@@ -731,7 +731,7 @@ pub fn generate(
                         rust_eloquent::EloquentValue::Bool(b) => rust_eloquent::sqlx::Arguments::add(&mut args, *b).unwrap(),
                     }
                 }
-                let rows: Vec<(i32,)> = rust_eloquent::sqlx::query_as_with(&query_str, args).fetch_all(pool).await?;
+                let rows: Vec<(i32,)> = rust_eloquent::sqlx::query_as_with(rust_eloquent::sqlx::AssertSqlSafe(query_str.clone()), args).fetch_all(pool).await?;
                 Ok(rows.into_iter().map(|(s,)| s).collect())
             }
 

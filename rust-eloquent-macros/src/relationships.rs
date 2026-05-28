@@ -1,6 +1,6 @@
 use quote::quote;
 use proc_macro2::TokenStream;
-use crate::parser::{ParsedModel, ParsedRelation};
+use crate::parser::ParsedModel;
 
 pub struct GeneratedRelationships {
     pub flags: Vec<TokenStream>,

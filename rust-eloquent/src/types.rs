@@ -27,7 +27,7 @@ impl<'r, T: serde::de::DeserializeOwned> sqlx::Decode<'r, sqlx::Any> for Json<T>
 
 // Encode logic
 impl<'q, T: serde::Serialize> sqlx::Encode<'q, sqlx::Any> for Json<T> {
-    fn encode_by_ref(&self, buf: &mut <sqlx::Any as sqlx::Database>::ArgumentBuffer<'q>) -> Result<sqlx::encode::IsNull, Box<dyn std::error::Error + 'static + Send + Sync>> {
+    fn encode_by_ref(&self, buf: &mut <sqlx::Any as sqlx::Database>::ArgumentBuffer) -> Result<sqlx::encode::IsNull, Box<dyn std::error::Error + 'static + Send + Sync>> {
         let text = serde_json::to_string(&self.0)?;
         <String as sqlx::Encode<sqlx::Any>>::encode(text, buf)
     }

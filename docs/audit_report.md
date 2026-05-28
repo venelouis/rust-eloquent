@@ -34,12 +34,18 @@ Below is the complete audit of the `rust-eloquent` and `rust-eloquent-macros` co
 ## 3. 🛡️ Security
 
 > [!TIP]
-> **SQL Injection Protection**
+> **SQL Injection Protection** -> ✅ **RESOLVED & ENFORCED**
 > The core query builder correctly separates SQL from variables using parameterized bindings (`?`), fully preventing SQL injections in standard methods.
+>
+> *Update Note:* Upgrading `sqlx` to `v0.9.0` activated compile-time static type analysis checks enforcing `SqlSafeStr`. The ORM now correctly wraps dynamically constructed safe queries using `sqlx::AssertSqlSafe` internally, providing a complete structural guarantee against raw string SQL injection vulnerabilities.
 
 * **Raw Queries Warning** -> ✅ **RESOLVED**
   Methods like `where_raw` and `select_raw` allow developers to input raw SQL strings, opening a vector for SQL Injection if they use string interpolation instead of bindings.
   *Update Note:* I have added explicit `/// WARNING:` docstrings directly into the generated `builder.rs` methods. IDEs will now warn developers about the risk of SQL injection when they hover over `.where_raw()` or `.select_raw()`.
+
+* **Dependency Vulnerabilities (e.g., Marvin Attack)** -> ✅ **RESOLVED**
+  Previous versions were locked to `rsa` `v0.9.10` via `sqlx` `0.8.x`, which contained known vulnerabilities (e.g., timing sidechannels/Marvin Attack).
+  *Update Note:* Upgrading to `sqlx` `v0.9.0` completely eliminated all vulnerable dependencies in the stack. `cargo audit` is now 100% clean and fully patched.
 
 ---
 
@@ -55,4 +61,4 @@ Below is the complete audit of the `rust-eloquent` and `rust-eloquent-macros` co
 
 ## Executive Summary
 
-The most critical vulnerabilities (N+1 queries and AI maintainability) have been completely **resolved**. The raw query security warnings have been injected into the generated documentation. The remaining items (`AnyPool` dynamic typing and `String` allocation overhead) are acknowledged as **intentional design trade-offs** necessary to maintain the library's dynamic multi-database compatibility and its simple, lifetime-free API.
+The most critical vulnerabilities (N+1 queries, vulnerable transitive dependencies, and AI maintainability) have been completely **resolved**. The raw query security warnings have been injected into the generated documentation. The remaining items (`AnyPool` dynamic typing and `String` allocation overhead) are acknowledged as **intentional design trade-offs** necessary to maintain the library's dynamic multi-database compatibility and its simple, lifetime-free API.

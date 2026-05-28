@@ -145,7 +145,7 @@ impl Schema {
         let sql = format!("CREATE TABLE IF NOT EXISTS {} (\n    {}\n);", table_name, columns_sql);
         
         let pool = crate::Eloquent::pool();
-        sqlx::query(&sql).execute(pool).await?;
+        sqlx::query(sqlx::AssertSqlSafe(sql.clone())).execute(pool).await?;
         
         Ok(())
     }
@@ -153,7 +153,7 @@ impl Schema {
     pub async fn drop_if_exists(table_name: &str) -> Result<(), Error> {
         let sql = format!("DROP TABLE IF EXISTS {};", table_name);
         let pool = crate::Eloquent::pool();
-        sqlx::query(&sql).execute(pool).await?;
+        sqlx::query(sqlx::AssertSqlSafe(sql.clone())).execute(pool).await?;
         Ok(())
     }
 }
@@ -246,7 +246,7 @@ async fn status_migrations(migrations: Vec<Box<dyn Migration>>) -> Result<(), Er
         std::collections::HashSet::new()
     };
 
-    println!("{:<40} | {}", "Migration Name", "Status");
+    println!("{:<40} | Status", "Migration Name");
     println!("{}", "-".repeat(55));
     for m in migrations {
         let name = m.name();
@@ -385,7 +385,7 @@ async fn run_migrations(migrations: Vec<Box<dyn Migration>>) -> Result<(), Error
         }
     };
 
-    sqlx::query(query_str).execute(pool).await?;
+    sqlx::query(sqlx::AssertSqlSafe(query_str)).execute(pool).await?;
 
     let executed: Vec<(String,)> = sqlx::query_as("SELECT migration FROM migrations")
         .fetch_all(pool)

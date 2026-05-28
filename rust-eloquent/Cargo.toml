@@ -11,7 +11,7 @@ readme = "../README.md"
 
 [dependencies]
 rust-eloquent-macros = { path = "../rust-eloquent-macros", version = "1.1.4" }
-sqlx = { version = "0.8", features = ["sqlite", "postgres", "mysql", "any", "runtime-tokio", "macros"] }
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "postgres", "mysql", "any", "runtime-tokio", "macros"] }
 tokio = { version = "1.43", features = ["full"] }
 async-trait = "0.1.86"
 futures = "0.3.32"
