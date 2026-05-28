@@ -203,7 +203,7 @@ pub fn generate(
                 Self::query().where_eq("id", id).first().await
             }
 
-            pub async fn find_with_tx(id: i32, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>) -> Result<Option<Self>, rust_eloquent::sqlx::Error> {
+            pub async fn find_with_tx(id: i32, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>) -> Result<Option<Self>, rust_eloquent::sqlx::Error> {
                 Self::query().where_eq("id", id).first_with_tx(tx).await
             }
 
@@ -211,7 +211,7 @@ pub fn generate(
                 Self::query().get().await
             }
 
-            pub async fn all_with_tx(tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>) -> Result<Vec<Self>, rust_eloquent::sqlx::Error> {
+            pub async fn all_with_tx(tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>) -> Result<Vec<Self>, rust_eloquent::sqlx::Error> {
                 Self::query().get_with_tx(tx).await
             }
 
@@ -220,12 +220,12 @@ pub fn generate(
                 self.save_with_tx_internal(pool).await
             }
 
-            pub async fn save_with_tx(&mut self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>) -> Result<(), rust_eloquent::sqlx::Error> {
+            pub async fn save_with_tx(&mut self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>) -> Result<(), rust_eloquent::sqlx::Error> {
                 self.save_with_tx_internal(&mut **tx).await
             }
 
             async fn save_with_tx_internal<'e, E>(&mut self, executor: E) -> Result<(), rust_eloquent::sqlx::Error> 
-            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::sqlx::Any>
+            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::EloquentDatabase>
             {
                 let is_new = self.id == 0;
                 #hook_before_save
@@ -286,7 +286,10 @@ pub fn generate(
                             #(#bind_inserts)*
                             .execute(executor)
                             .await?;
-                        self.id = result.last_insert_id().unwrap_or(0) as i32;
+                        self.id = {
+                            use rust_eloquent::database::QueryResultExt;
+                            result.get_last_insert_id() as i32
+                        }
                     }
                     {
                         let observers = {
@@ -375,12 +378,12 @@ pub fn generate(
                 self.delete_with_tx_internal(pool).await
             }
 
-            pub async fn delete_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::sqlx::Any>) -> Result<(), rust_eloquent::sqlx::Error> {
+            pub async fn delete_with_tx(&self, tx: &mut rust_eloquent::sqlx::Transaction<'static, rust_eloquent::EloquentDatabase>) -> Result<(), rust_eloquent::sqlx::Error> {
                 self.delete_with_tx_internal(&mut **tx).await
             }
 
             async fn delete_with_tx_internal<'e, E>(&self, executor: E) -> Result<(), rust_eloquent::sqlx::Error> 
-            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::sqlx::Any>
+            where E: rust_eloquent::sqlx::Executor<'e, Database = rust_eloquent::EloquentDatabase>
             {
                 #hook_before_delete
                 {

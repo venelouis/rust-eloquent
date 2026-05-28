@@ -1,4 +1,18 @@
-use sqlx::{AnyPool, any::install_default_drivers};
+#[cfg(not(any(feature = "strict-postgres", feature = "strict-mysql", feature = "strict-sqlite")))]
+pub use sqlx::AnyPool as EloquentPool;
+
+#[cfg(feature = "strict-postgres")]
+pub use sqlx::PgPool as EloquentPool;
+
+#[cfg(feature = "strict-mysql")]
+pub use sqlx::MySqlPool as EloquentPool;
+
+#[cfg(feature = "strict-sqlite")]
+pub use sqlx::SqlitePool as EloquentPool;
+
+#[cfg(not(any(feature = "strict-postgres", feature = "strict-mysql", feature = "strict-sqlite")))]
+use sqlx::any::install_default_drivers;
+
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -14,9 +28,11 @@ pub use redis;
 pub mod schema;
 pub mod collection;
 pub mod types;
+pub mod database;
 
 pub use types::Json;
 pub use collection::EloquentCollection;
+pub use database::EloquentDatabase;
 
 // Re-export async_trait so the macro can use it implicitly
 pub use async_trait::async_trait;
@@ -26,13 +42,13 @@ pub use sqlx::FromRow;
 pub use schema::{JoinClause, SubqueryBuilder};
 
 /// The global connection pool
-static DB_POOL: OnceLock<AnyPool> = OnceLock::new();
+static DB_POOL: OnceLock<EloquentPool> = OnceLock::new();
 
 /// The driver identifier (postgres, mysql, sqlite) to help macro syntax formatting
 static DB_DRIVER: OnceLock<String> = OnceLock::new();
 
 /// The replica connection pools for read operations
-static REPLICA_POOLS: OnceLock<Vec<AnyPool>> = OnceLock::new();
+static REPLICA_POOLS: OnceLock<Vec<EloquentPool>> = OnceLock::new();
 
 /// Atomic index for replica round-robin selection
 static REPLICA_INDEX: AtomicUsize = AtomicUsize::new(0);
@@ -74,8 +90,10 @@ pub struct Eloquent;
 impl Eloquent {
     /// Initialize the global database connection pool using an agnostic URI
     pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
+        #[cfg(not(any(feature = "strict-postgres", feature = "strict-mysql", feature = "strict-sqlite")))]
         install_default_drivers();
-        let pool = AnyPool::connect(database_url).await?;
+
+        let pool = EloquentPool::connect(database_url).await?;
         
         if DB_POOL.set(pool).is_err() {
             panic!("Eloquent has already been initialized");
@@ -97,8 +115,10 @@ impl Eloquent {
 
     /// Initialize the global database connection pool and its read replicas
     pub async fn init_with_replicas(primary_url: &str, replica_urls: Vec<&str>) -> Result<(), sqlx::Error> {
+        #[cfg(not(any(feature = "strict-postgres", feature = "strict-mysql", feature = "strict-sqlite")))]
         install_default_drivers();
-        let pool = AnyPool::connect(primary_url).await?;
+
+        let pool = EloquentPool::connect(primary_url).await?;
         
         if DB_POOL.set(pool).is_err() {
             panic!("Eloquent has already been initialized");
@@ -116,7 +136,7 @@ impl Eloquent {
 
         let mut replicas = vec![];
         for url in replica_urls {
-            let p = AnyPool::connect(url).await?;
+            let p = EloquentPool::connect(url).await?;
             replicas.push(p);
         }
         let _ = REPLICA_POOLS.set(replicas);
@@ -125,13 +145,13 @@ impl Eloquent {
     }
 
     /// Retrieve the global database connection pool (strictly for writes)
-    pub fn pool() -> &'static AnyPool {
+    pub fn pool() -> &'static EloquentPool {
         DB_POOL.get().expect("Eloquent must be initialized before querying")
     }
 
     /// Retrieve the connection pool for read operations.
     /// Performs a round-robin load balancing over replicas if configured.
-    pub fn read_pool() -> &'static AnyPool {
+    pub fn read_pool() -> &'static EloquentPool {
         if let Some(replicas) = REPLICA_POOLS.get()
             && !replicas.is_empty() {
                 let idx = REPLICA_INDEX.fetch_add(1, Ordering::Relaxed) % replicas.len();
@@ -146,7 +166,26 @@ impl Eloquent {
     }
 
     /// Starts a new database transaction
+    #[cfg(not(any(feature = "strict-postgres", feature = "strict-mysql", feature = "strict-sqlite")))]
     pub async fn begin_transaction() -> Result<sqlx::Transaction<'static, sqlx::Any>, sqlx::Error> {
+        let pool = Self::pool();
+        pool.begin().await
+    }
+
+    #[cfg(feature = "strict-postgres")]
+    pub async fn begin_transaction() -> Result<sqlx::Transaction<'static, sqlx::Postgres>, sqlx::Error> {
+        let pool = Self::pool();
+        pool.begin().await
+    }
+
+    #[cfg(feature = "strict-mysql")]
+    pub async fn begin_transaction() -> Result<sqlx::Transaction<'static, sqlx::MySql>, sqlx::Error> {
+        let pool = Self::pool();
+        pool.begin().await
+    }
+
+    #[cfg(feature = "strict-sqlite")]
+    pub async fn begin_transaction() -> Result<sqlx::Transaction<'static, sqlx::Sqlite>, sqlx::Error> {
         let pool = Self::pool();
         pool.begin().await
     }
@@ -213,4 +252,3 @@ pub struct PaginationResult<T> {
     pub current_page: usize,
     pub last_page: usize,
 }
-

@@ -10,6 +10,11 @@ readme = "../README.md"
 [lib]
 proc-macro = true
 
+[features]
+strict-postgres = []
+strict-mysql = []
+strict-sqlite = []
+
 [dependencies]
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"

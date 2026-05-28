@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-alpha] - Unreleased
+
+### Added
+- **Strict SQL Typing Architecture:** Complete integration of Cargo feature flags (`strict-postgres`, `strict-mysql`, `strict-sqlite`) to optionally enforce `sqlx` compile-time type verification instead of using `AnyPool`.
+- Custom `QueryResultExt` wrapper added to dynamically handle `last_insert_id()` logic across strict drivers.
+- **v2.0 Roadmap:** Updated `docs/v2_roadmap.md` with the strategy to use feature flags for Strict Typing and iterative implementation for the Zero-Copy Builder.
+
+---
+
 ## [1.1.9] - 2026-05-28
 
 ### Fixed
