@@ -23,6 +23,9 @@ rand = "0.10"
 [features]
 default = []
 redis = ["dep:redis"]
+strict-postgres = []
+strict-mysql = []
+strict-sqlite = []
 
 [dev-dependencies]
 rand = "0.10"
