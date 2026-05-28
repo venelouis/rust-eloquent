@@ -154,14 +154,15 @@ pub fn generate(parsed: &ParsedModel) -> GeneratedRelationships {
             });
         } else if rel_type == "belongs_to_many" {
             let pivot_fk = format!("{}.{}", pivot_table, foreign_key);
-            let pivot_rk = format!("{}.{}", pivot_table, related_key);
+            let _pivot_rk = format!("{}.{}", pivot_table, related_key);
             model_methods.push(quote! {
                 pub fn #method_name(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<#rel_model_ident>, rust_eloquent::sqlx::Error>> + Send + '_>> {
                     Box::pin(async move {
                         let related_pk = format!("{}.{}", #rel_model_ident::table_name(), "id");
+                        let select_raw = format!("{}.*", #rel_model_ident::table_name());
                         #rel_model_ident::query()
-                            .select_raw(&format!("{}.*", #rel_model_ident::table_name()))
-                            .join(#pivot_table, &related_pk, "=", #pivot_rk)
+                            .select_raw(&select_raw)
+                            .join(#pivot_table, &related_pk, "=", &_pivot_rk)
                             .where_eq(&#pivot_fk, self.#lk_ident.clone())
                             .get().await
                     })
@@ -169,9 +170,10 @@ pub fn generate(parsed: &ParsedModel) -> GeneratedRelationships {
                 pub fn #method_name_constrained(&self, modifier: std::sync::Arc<dyn Fn(#rel_model_builder_ident) -> #rel_model_builder_ident + Send + Sync>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<#rel_model_ident>, rust_eloquent::sqlx::Error>> + Send + '_>> {
                     Box::pin(async move {
                         let related_pk = format!("{}.{}", #rel_model_ident::table_name(), "id");
+                        let select_raw = format!("{}.*", #rel_model_ident::table_name());
                         let mut q = #rel_model_ident::query()
-                            .select_raw(&format!("{}.*", #rel_model_ident::table_name()))
-                            .join(#pivot_table, &related_pk, "=", #pivot_rk)
+                            .select_raw(&select_raw)
+                            .join(#pivot_table, &related_pk, "=", &_pivot_rk)
                             .where_eq(&#pivot_fk, self.#lk_ident.clone());
                         q = modifier(q);
                         q.get().await

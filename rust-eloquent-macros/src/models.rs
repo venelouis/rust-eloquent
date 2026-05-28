@@ -68,11 +68,21 @@ pub fn generate(
 
     let delete_logic = if has_soft_deletes {
         quote! {
-            let query = format!("UPDATE {} SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", #table_name);
+            use rust_eloquent::sqlx::query_builder::QueryBuilder;
+            let mut query_builder = QueryBuilder::new("UPDATE ");
+            query_builder.push(#table_name);
+            query_builder.push(" SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?");
+            let query = query_builder.build();
+            query.bind(self.id).execute(pool).await?;
         }
     } else {
         quote! {
-            let query = format!("DELETE FROM {} WHERE id = ?", #table_name);
+            use rust_eloquent::sqlx::query_builder::QueryBuilder;
+            let mut query_builder = QueryBuilder::new("DELETE FROM ");
+            query_builder.push(#table_name);
+            query_builder.push(" WHERE id = ?");
+            let query = query_builder.build();
+            query.bind(self.id).execute(pool).await?;
         }
     };
 
@@ -250,21 +260,37 @@ pub fn generate(
                     }
                     let driver = rust_eloquent::Eloquent::driver();
                     if driver == "postgres" {
-                        let query = format!("INSERT INTO {} ({}) VALUES ({}) RETURNING id", #table_name, #insert_columns_str, #insert_placeholders_str);
+                        use rust_eloquent::sqlx::query_builder::QueryBuilder;
+                        let mut query_builder = QueryBuilder::new("INSERT INTO ");
+                        query_builder.push(#table_name);
+                        query_builder.push(" (");
+                        query_builder.push(#insert_columns_str);
+                        query_builder.push(") VALUES (");
+                        query_builder.push(#insert_placeholders_str);
+                        query_builder.push(") RETURNING id");
+                        let query = query_builder.build();
                         if rust_eloquent::schema::is_query_log_enabled() {
-                            println!("[SQL Debug] {}", query);
+                            println!("[SQL Debug] {}", query.sql());
                         }
-                        let row = rust_eloquent::sqlx::query(&query)
+                        let row = query
                             #(#bind_inserts)*
                             .fetch_one(executor)
                             .await?;
                         self.id = rust_eloquent::sqlx::Row::try_get(&row, "id")?;
                     } else {
-                        let query = format!("INSERT INTO {} ({}) VALUES ({})", #table_name, #insert_columns_str, #insert_placeholders_str);
+                        use rust_eloquent::sqlx::query_builder::QueryBuilder;
+                        let mut query_builder = QueryBuilder::new("INSERT INTO ");
+                        query_builder.push(#table_name);
+                        query_builder.push(" (");
+                        query_builder.push(#insert_columns_str);
+                        query_builder.push(") VALUES (");
+                        query_builder.push(#insert_placeholders_str);
+                        query_builder.push(")");
+                        let query = query_builder.build();
                         if rust_eloquent::schema::is_query_log_enabled() {
-                            println!("[SQL Debug] {}", query);
+                            println!("[SQL Debug] {}", query.sql());
                         }
-                        let result = rust_eloquent::sqlx::query(&query)
+                        let result = query
                             #(#bind_inserts)*
                             .execute(executor)
                             .await?;
@@ -289,11 +315,17 @@ pub fn generate(
                             obs.updating(self).await?;
                         }
                     }
-                    let query = format!("UPDATE {} SET {} WHERE id = ?", #table_name, #update_sets_str);
+                    use rust_eloquent::sqlx::query_builder::QueryBuilder;
+                    let mut query_builder = QueryBuilder::new("UPDATE ");
+                    query_builder.push(#table_name);
+                    query_builder.push(" SET ");
+                    query_builder.push(#update_sets_str);
+                    query_builder.push(" WHERE id = ?");
+                    let query = query_builder.build();
                     if rust_eloquent::schema::is_query_log_enabled() {
-                        println!("[SQL Debug] {} | ID: {}", query, self.id);
+                        println!("[SQL Debug] {} | ID: {}", query.sql(), self.id);
                     }
-                    rust_eloquent::sqlx::query(&query)
+                    query
                         #(#bind_updates)*
                         .bind(self.id)
                         .execute(executor)
