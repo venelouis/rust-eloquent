@@ -65,7 +65,10 @@ pub fn generate(
     let has_soft_deletes = parsed.has_soft_deletes;
     let hook_after_fetch = if !parsed.after_fetch.is_empty() {
         let method = syn::Ident::new(&parsed.after_fetch, name.span());
-        quote! { for model in &mut results { model.#method().await?; } }
+        quote! { 
+            let futures = results.iter_mut().map(|model| model.#method());
+            rust_eloquent::futures::future::try_join_all(futures).await?;
+        }
     } else {
         quote! {}
     };

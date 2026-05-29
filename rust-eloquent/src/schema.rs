@@ -316,7 +316,6 @@ impl Migration for MigrationImpl {{
     async fn up(&self) -> Result<(), rust_eloquent::sqlx::Error> {{
         Schema::create("{name}", |table| {{
             table.id();
-            // table.string("column_name");
             table.timestamps();
         }}).await
     }}
@@ -554,4 +553,34 @@ pub fn disable_query_log() {
 
 pub fn is_query_log_enabled() -> bool {
     QUERY_LOGGING.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_enable_disable_query_log() {
+        disable_query_log();
+        assert!(!is_query_log_enabled());
+        enable_query_log();
+        assert!(is_query_log_enabled());
+        disable_query_log();
+        assert!(!is_query_log_enabled());
+    }
+
+    #[test]
+    fn test_join_clause() {
+        let mut jc = JoinClause::new("users");
+        jc.on("users.id", "=", "posts.user_id");
+        assert_eq!(jc.to_sql(), "users.id = posts.user_id");
+    }
+
+    #[test]
+    fn test_validate_table_name() {
+        assert!(validate_table_name("users").is_ok());
+        assert!(validate_table_name("user_posts").is_ok());
+        assert!(validate_table_name("DROP TABLE users").is_err());
+        assert!(validate_table_name("../../../etc/shadow").is_err());
+    }
 }

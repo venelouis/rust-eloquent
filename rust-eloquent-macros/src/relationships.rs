@@ -284,24 +284,32 @@ pub fn generate(parsed: &ParsedModel) -> GeneratedRelationships {
             if rel_type == "morph_many" || rel_type == "belongs_to_many" {
                 quote! {
                     if self.#load_flag {
-                        for model in &mut results {
+                        let futures = results.iter().map(|model| {
                             if let Some(ref filter) = self.#filter_flag {
-                                model.#method_name = Some(model.#method_name_constrained(filter.clone()).await?);
+                                model.#method_name_constrained(filter.clone())
                             } else {
-                                model.#method_name = Some(model.#method_name().await?);
+                                model.#method_name()
                             }
+                        });
+                        let related_results = rust_eloquent::futures::future::try_join_all(futures).await?;
+                        for (model, related) in results.iter_mut().zip(related_results.into_iter()) {
+                            model.#method_name = Some(related);
                         }
                     }
                 }
             } else {
                 quote! {
                     if self.#load_flag {
-                        for model in &mut results {
+                        let futures = results.iter().map(|model| {
                             if let Some(ref filter) = self.#filter_flag {
-                                model.#method_name = model.#method_name_constrained(filter.clone()).await?;
+                                model.#method_name_constrained(filter.clone())
                             } else {
-                                model.#method_name = model.#method_name().await?;
+                                model.#method_name()
                             }
+                        });
+                        let related_results = rust_eloquent::futures::future::try_join_all(futures).await?;
+                        for (model, related) in results.iter_mut().zip(related_results.into_iter()) {
+                            model.#method_name = related;
                         }
                     }
                 }

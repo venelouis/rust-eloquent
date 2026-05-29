@@ -214,3 +214,18 @@ pub struct PaginationResult<T> {
     pub last_page: usize,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eloquent_value_conversions() {
+        let v: EloquentValue = "test".into();
+        assert!(matches!(v, EloquentValue::String(_)));
+        let v_int: EloquentValue = 100.into();
+        assert!(matches!(v_int, EloquentValue::Int(100)));
+        let v_bool: EloquentValue = false.into();
+        assert!(matches!(v_bool, EloquentValue::Bool(false)));
+    }
+}
+
