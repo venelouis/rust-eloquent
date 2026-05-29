@@ -284,6 +284,7 @@ pub fn generate(
                 self
             }
 
+            /// WARNING: Ensure `column` does not contain user input to prevent SQL Injection.
             pub fn where_in<T: Into<rust_eloquent::EloquentValue>>(mut self, column: &str, values: Vec<T>) -> Self {
                 if values.is_empty() { return self; }
                 let placeholders = vec!["?"; values.len()].join(", ");
@@ -359,6 +360,7 @@ pub fn generate(
                 self
             }
 
+            /// WARNING: Ensure `column` does not contain user input to prevent SQL Injection.
             pub fn or_where_in<T: Into<rust_eloquent::EloquentValue>>(mut self, column: &str, values: Vec<T>) -> Self {
                 if values.is_empty() { return self; }
                 let placeholders = vec!["?"; values.len()].join(", ");
@@ -399,6 +401,7 @@ pub fn generate(
                 self
             }
 
+            /// WARNING: This generates the raw SQL query. Ensure all dynamic table names and column names are validated.
             pub fn to_sql(&self) -> String {
                 let select_clause = match &self.selects {
                     Some(s) => s.as_str(),

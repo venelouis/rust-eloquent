@@ -285,6 +285,7 @@ async fn status_migrations(migrations: Vec<Box<dyn Migration>>) -> Result<(), Er
 }
 
 fn create_migration_files(name: &str) -> Result<(), Error> {
+    validate_table_name(name)?;
     use std::fs;
     
     let now = std::time::SystemTime::now()
@@ -519,6 +520,7 @@ impl JoinClause {
         }
     }
 
+    /// WARNING: Ensure `first` and `second` do not contain user input to prevent SQL Injection.
     pub fn on(&mut self, first: &str, operator: &str, second: &str) -> &mut Self {
         self.conditions.push(format!("{} {} {}", first, operator, second));
         self

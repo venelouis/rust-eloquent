@@ -42,7 +42,7 @@ impl<T> EloquentCollection<T> for Vec<T> {
         F: Fn(&T) -> K,
         K: Hash + Eq,
     {
-        let mut map = HashMap::new();
+        let mut map = HashMap::with_capacity(self.len());
         for item in self {
             map.insert(f(&item), item);
         }
@@ -54,14 +54,14 @@ impl<T> EloquentCollection<T> for Vec<T> {
             return vec![self];
         }
 
-        let mut chunks = vec![];
-        let mut current_chunk = vec![];
+        let mut chunks = Vec::with_capacity((self.len() + size - 1) / size);
+        let mut current_chunk = Vec::with_capacity(size);
 
         for item in self {
             current_chunk.push(item);
             if current_chunk.len() == size {
                 chunks.push(current_chunk);
-                current_chunk = vec![];
+                current_chunk = Vec::with_capacity(size);
             }
         }
 
@@ -76,8 +76,16 @@ impl<T> EloquentCollection<T> for Vec<T> {
     where
         F: Fn(&T) -> String,
     {
-        let strings: Vec<String> = self.iter().map(f).collect();
-        strings.join(separator)
+        let mut result = String::new();
+        let mut iter = self.iter();
+        if let Some(first) = iter.next() {
+            result.push_str(&f(first));
+            for item in iter {
+                result.push_str(separator);
+                result.push_str(&f(item));
+            }
+        }
+        result
     }
 
     fn sum_by<N, F>(&self, f: F) -> N

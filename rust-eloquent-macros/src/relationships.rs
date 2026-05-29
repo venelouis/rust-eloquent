@@ -213,14 +213,15 @@ pub fn generate(parsed: &ParsedModel) -> GeneratedRelationships {
                         
                         for model in &mut results {
                             let mut matching = vec![];
-                            let mut i = 0;
-                            while i < all_related.len() {
-                                if all_related[i].#fk_ident == model.#lk_ident {
-                                    matching.push(all_related.remove(i));
+                            let mut remaining = Vec::with_capacity(all_related.len());
+                            for related in all_related {
+                                if related.#fk_ident == model.#lk_ident {
+                                    matching.push(related);
                                 } else {
-                                    i += 1;
+                                    remaining.push(related);
                                 }
                             }
+                            all_related = remaining;
                             model.#method_name = Some(matching);
                         }
                     }
@@ -242,7 +243,7 @@ pub fn generate(parsed: &ParsedModel) -> GeneratedRelationships {
                             let mut i = 0;
                             while i < all_related.len() {
                                 if all_related[i].#fk_ident == model.#lk_ident {
-                                    matching = Some(all_related.remove(i));
+                                    matching = Some(all_related.swap_remove(i));
                                     break;
                                 }
                                 i += 1;
@@ -268,7 +269,7 @@ pub fn generate(parsed: &ParsedModel) -> GeneratedRelationships {
                             let mut i = 0;
                             while i < all_related.len() {
                                 if all_related[i].#pk_ident == model.#fk_ident {
-                                    matching = Some(all_related.remove(i));
+                                    matching = Some(all_related.swap_remove(i));
                                     break;
                                 }
                                 i += 1;
